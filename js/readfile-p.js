@@ -15,6 +15,6 @@ let file = new Promise((resolve, reject) => {
 
 file.then((data) => {
     console.log('成功讀到資料:', data)
-}).catch((error) => {
+}).catch((err) => {
     console.log('發生錯誤了', err)
 })
