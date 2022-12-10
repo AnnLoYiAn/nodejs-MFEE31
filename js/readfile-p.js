@@ -3,9 +3,9 @@ const fs = require('fs')
 let file = new Promise((resolve, reject) => {
     fs.readFile('test.txt', 'utf-8', (err, data) => {
         if(err) {
-            reject('發生錯誤')
+            reject(err)
         } else {
-            resolve('success')
+            resolve(data)
         }
     })
 })
