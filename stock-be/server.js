@@ -82,15 +82,50 @@ app.get('/api/stocks', async (req, res, next) => {
 // SELECT * FROM stock_prices WHERE stock_id=1234 or 1=1;--
 app.get('/api/stocks/:stockId', async (req, res, next) => {
   console.log('/api/stocks/:stockId => ', req.params.stockId);
-  // 會用 prepared statement 的方式來避免發生 sql injection
-  let [data] = await pool.query('SELECT * FROM stock_prices WHERE stock_id=?', [req.params.stockId]);
-  res.json(data);
+
+  // TODO:分頁
+  // 從前端拿到目前要第幾頁
+  // 路徑通常都會放在 query string 中: req.query.page
+  // /api/stocks/:StockId?page=2
+  // 如果 page 沒有寫，default 就設置為第一頁
+  const page = req.query.page || 1;
+  
+  // 得知資料的總比數
+  let [results] = await pool.execute('SELECT COUNT(*) AS total FROM stock_prices WHERE stock_id=?', [req.params.stockId]);
+  console.log('GET /stocks/details -> count:', results[0].total);
+  const total = results[0].total;
+
+  // 計算 offset, limit (一頁有幾筆)
+  const perPage = 5;
+  const totalPage = Math.ceil(total / perPage);
+  const limit = perPage;
+  const offset = perPage * (page - 1);
+
+  // TODO:根據 offset, limit 去取資料
+  let [data] = await pool.execute('SELECT * FROM stock_prices WHERE stock_id=? ORDER BY date LIMIT ? OFFSET ?', [req.params.stockId, limit, offset]);
+
+  
+  // TODO:把資料回覆給前端
+  res.json({
+    pagination: {
+      perPage,
+      totalPage,
+      page,
+    },
+    data,
+  });
+
+
+  // 會用 prepared statement 的方式來避免發生 sql injection, 串字串會有資安上的問題
+  // 2種方式: pool.query 和 pool.execute
+  // let [data] = await pool.execute('SELECT * FROM stock_prices WHERE stock_id=?', [req.params.stockId]);
+  // res.json(data);
 });
 app.post('/api/stocks', async (req, res) => {
   console.log('POST /api/stocks', req.body);
   const inputId = req.body.stockId;
   const inputName = req.body.stockName;
-  let results = await pool.query('INSERT INTO stocks (`id`, `name`) VALUES (?,?)', [inputId, inputName]);
+  let results = await pool.execute('INSERT INTO stocks (`id`, `name`) VALUES (?, ?)', [inputId, inputName]);
   res.json(results);
 });
 
